@@ -1,21 +1,37 @@
-import { useState } from "react";
+import {useEffect, useState } from "react";
 
 export type PanelProps = {
   id: string;
-  type: "text" | "video" | "image";
-  content: string;
+  type: "text" | "video" | "image" | "carousel" ;
+  content: string | string[];
 };
+
+  export const [currentIndex, setCurrentIndex] = useState(0);
+
+
 
 export function Panel({ panel, onUpdate, onEditingChange }: { panel: PanelProps; onUpdate: (b: PanelProps) => void; onEditingChange: (id: string, isEditing: boolean) => void }) {
   const [isOpen, setIsOpen] = useState(false);
   const [draft, setDraft] = useState(panel);
+
+  useEffect(() => {
+    if (panel.type !== "carousel" || !Array.isArray(panel.content)) return;
+
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) =>
+        prev === panel.content.length - 1 ? 0 : prev + 1
+      );
+    }, 3000); // ⏱️ every 3 seconds
+
+    return () => clearInterval(interval); // cleanup when component unmounts
+  }, [panel]);
   
    return( <div className="bg-gray-100 p-2 rounded">
       {/* Content */}
       {panel.type === "text" && (
         <div className="bg-blue-200 p-4 rounded">{panel.content}</div>
       )}
-      {panel.type === "video" && (
+      {panel.type === "video" && !Array.isArray(panel.content) && (
         <iframe
           width="100%"
           height="100%"
@@ -23,13 +39,20 @@ export function Panel({ panel, onUpdate, onEditingChange }: { panel: PanelProps;
           className="rounded"
         />
       )}
-      {panel.type === "image" && (
+      {panel.type === "image" && !Array.isArray(panel.content) && (
         <img
           src={panel.content}
           alt=""
           className="rounded w-full h-full object-cover"
         />
       )}
+      {panel.type === "carousel" && !Array.isArray(panel.content) && (
+        <>
+        <h1>{panel.content.length}</h1>
+        
+        </>
+      )}
+      
 
       {/* Edit button */}
       <button
