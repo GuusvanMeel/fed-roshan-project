@@ -4,7 +4,7 @@ import { useMemo } from "react";
 export type BackgroundConfig = {
     mode: "solid" | "gradient";
     color: string;
-    gradientType: "linear"; // reserved for extension
+    gradientType: "linear";
     direction: "to-top" | "to-bottom" | "to-left" | "to-right" | "to-top-right" | "to-bottom-right";
     colorStart: string;
     colorEnd: string;
@@ -31,13 +31,11 @@ export default function BackgroundModal({ isOpen, device, background, onChange, 
     onClose: () => void;
 }) {
     const gradientPreview = useMemo(() => computeGradientString(background), [background]);
-
     if (!isOpen) return null;
     return (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center">
             <div className="bg-white text-black rounded-lg p-6 w-[32rem]">
                 <div className="text-lg font-semibold mb-4">Edit background ({device})</div>
-
                 <div className="mb-4 flex gap-3 items-center">
                     <label className="flex items-center gap-2">
                         <input type="radio" name="bgMode" checked={background.mode === "solid"} onChange={() => onChange({ ...background, mode: "solid" })} /> Solid
@@ -46,14 +44,12 @@ export default function BackgroundModal({ isOpen, device, background, onChange, 
                         <input type="radio" name="bgMode" checked={background.mode === "gradient"} onChange={() => onChange({ ...background, mode: "gradient" })} /> Gradient
                     </label>
                 </div>
-
                 {background.mode === "solid" && (
                     <div className="flex items-center gap-3">
                         <input type="color" value={background.color} onChange={e => onChange({ ...background, color: e.target.value })} />
                         <input className="flex-1 border p-2 rounded" value={background.color} onChange={e => onChange({ ...background, color: e.target.value })} />
                     </div>
                 )}
-
                 {background.mode === "gradient" && (
                     <div className="space-y-4">
                         <div className="grid grid-cols-6 gap-2">
@@ -78,7 +74,6 @@ export default function BackgroundModal({ isOpen, device, background, onChange, 
                         <div className="h-16 rounded" style={{ backgroundImage: gradientPreview }} />
                     </div>
                 )}
-
                 <div className="mt-4 flex justify-end gap-2">
                     <button className="bg-neutral-200 rounded px-3 py-2" onClick={onClose}>Close</button>
                 </div>
