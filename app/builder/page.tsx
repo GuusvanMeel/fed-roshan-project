@@ -31,24 +31,37 @@ const PAGE_KEYS = [
 ];
 
 export default function BuilderPage() {
-	const emptyPanels: PanelData[] = [];
-	const [pages, setPages] = useState<Record<string, PanelData[]>>({
-		front: emptyPanels,
-		error: emptyPanels,
-		tournament: emptyPanels,
-		custom: emptyPanels
-	});
-	const [currentPage, setCurrentPage] = useState<string>(PAGE_KEYS[0].key);
-	const [isPickerOpen, setIsPickerOpen] = useState(false);
-	const [selectedId, setSelectedId] = useState<string | null>(null);
+    const emptyPanels: PanelData[] = [];
+    type Device = "desktop" | "mobile";
+    const [device, setDevice] = useState<Device>("desktop");
+    const [pages, setPages] = useState<Record<string, { desktop: PanelData[]; mobile: PanelData[] }>>({
+        front: { desktop: emptyPanels, mobile: emptyPanels },
+        error: { desktop: emptyPanels, mobile: emptyPanels },
+        tournament: { desktop: emptyPanels, mobile: emptyPanels },
+        custom: { desktop: emptyPanels, mobile: emptyPanels }
+    });
+    const [currentPage, setCurrentPage] = useState<string>(PAGE_KEYS[0].key);
+    const [isPickerOpen, setIsPickerOpen] = useState(false);
+    const [selectedId, setSelectedId] = useState<string | null>(null);
 
-	const panels = pages[currentPage] ?? [];
+    const currentSet = pages[currentPage] ?? { desktop: emptyPanels, mobile: emptyPanels };
+    const panels = (device === "desktop" ? currentSet.desktop : currentSet.mobile) ?? [];
 
-	const setPanels = (next: PanelData[] | ((p: PanelData[]) => PanelData[])) => {
-		setPages(prev => ({ ...prev, [currentPage]: typeof next === "function" ? (next as (p: PanelData[]) => PanelData[])(prev[currentPage] ?? []) : next }));
-	};
+    const setPanels = (next: PanelData[] | ((p: PanelData[]) => PanelData[])) => {
+        setPages(prev => {
+            const page = prev[currentPage] ?? { desktop: emptyPanels, mobile: emptyPanels };
+            const nextPanels = typeof next === "function" ? (next as (p: PanelData[]) => PanelData[])(device === "desktop" ? page.desktop : page.mobile) : next;
+            return {
+                ...prev,
+                [currentPage]: {
+                    desktop: device === "desktop" ? nextPanels : page.desktop,
+                    mobile: device === "mobile" ? nextPanels : page.mobile
+                }
+            };
+        });
+    };
 
-	const addPanel = (type: PanelType) => {
+    const addPanel = (type: PanelType) => {
 		const newPanel: PanelData = {
 			i: Date.now().toString(),
 			x: 0,
@@ -71,6 +84,24 @@ export default function BuilderPage() {
 		setPanels(prev => [...prev, newPanel]);
 		setIsPickerOpen(false);
 	};
+
+    // When switching device, if target layout is empty but the other device has content,
+    // auto-clone positions in a stacked layout so users don't lose work.
+    const ensureDeviceLayout = (nextDevice: Device) => {
+        const page = pages[currentPage] ?? { desktop: emptyPanels, mobile: emptyPanels };
+        const from = nextDevice === "desktop" ? page.mobile : page.desktop;
+        const to = nextDevice === "desktop" ? page.desktop : page.mobile;
+        if (to.length === 0 && from.length > 0) {
+            const cloned = from.map((p, idx) => ({ ...p, y: idx * (p.h + 1), x: 0 }));
+            setPages(prev => ({
+                ...prev,
+                [currentPage]: {
+                    desktop: nextDevice === "desktop" ? cloned : page.desktop,
+                    mobile: nextDevice === "mobile" ? cloned : page.mobile
+                }
+            }));
+        }
+    };
 
 	const updatePanelContent = (id: string, content: string) => {
 		setPanels(prev => prev.map(p => (p.i === id ? { ...p, content } : p)));
@@ -109,18 +140,41 @@ export default function BuilderPage() {
 	return (
 		<div className="min-h-screen bg-neutral-800 text-white">
 			{/* Top bar */}
-			<div className="flex items-center justify-center gap-6 py-6">
-				{PAGE_KEYS.map(p => (
-					<button
-						key={p.key}
-						onClick={() => setCurrentPage(p.key)}
-						className={`px-5 py-2 rounded-full ${currentPage === p.key ? "bg-green-500 text-black" : "bg-neutral-600"}`}
-					>
-						{p.label}
-					</button>
-				))}
-				<button onClick={() => setIsPickerOpen(true)} className="bg-neutral-600 px-4 py-3 rounded-xl text-2xl leading-none">+</button>
-			</div>
+			<div className="flex flex-col items-center gap-4 py-6">
+				{/* Device switch */}
+				<div className="flex items-center gap-3">
+					<span className={`text-sm ${device === "mobile" ? "opacity-60" : ""}`}>Desktop</span>
+					<label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" className="sr-only peer" checked={device === "mobile"} onChange={e => { const nextDevice = e.target.checked ? "mobile" : "desktop"; ensureDeviceLayout(nextDevice); setDevice(nextDevice); }} />
+						<div className="w-12 h-6 bg-neutral-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:h-5 after:w-5 after:rounded-full after:transition-all"></div>
+					</label>
+					<span className={`text-sm ${device === "desktop" ? "opacity-60" : ""}`}>Mobile</span>
+				</div>
+  {/* Row of page keys */}
+  <div className="flex gap-6">
+    {PAGE_KEYS.map(p => (
+      <button
+        key={p.key}
+        onClick={() => setCurrentPage(p.key)}
+        className={`px-5 py-2 rounded-full ${
+          currentPage === p.key
+            ? "bg-green-500 text-black"
+            : "bg-neutral-600"
+        }`}
+      >
+        {p.label}
+      </button>
+    ))}
+  </div>
+
+  {/* Plus button below */}
+  <button
+    onClick={() => setIsPickerOpen(true)}
+    className="bg-neutral-600 px-4 py-3 rounded-xl text-2xl leading-none"
+  >    +
+  </button>
+</div>
+
 
 			<div className="flex gap-6 px-10 pb-10">
 				{/* Sidebar: properties */}
@@ -176,47 +230,74 @@ export default function BuilderPage() {
 
 				{/* Canvas / Live preview */}
 				<div className="flex-1 bg-neutral-300 rounded-xl p-8">
-					<div className="bg-neutral-200 rounded-xl mx-auto" style={{ height: 700 }}>
-						<ResponsiveGridLayout
-							className="layout p-6"
-							layouts={{ lg: panels, md: panels, sm: panels, xs: panels, xxs: panels }}
-							breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-							cols={{ lg: 12, md: 10, sm: 8, xs: 6, xxs: 4 }}
-							rowHeight={80}
-							draggableCancel=".edit-handle"
-							compactType={null}
-						>
-							{panels.map(p => (
-								<div key={p.i}>
-									<div
-										className={`w-full h-full rounded relative group ${selectedId === p.i ? "ring-4 ring-pink-400" : ""}`}
-										style={{ backgroundColor: p.backgroundColor, color: p.textColor, fontFamily: p.fontFamily }}
-									>
-										{/* Hover edit handle */}
-										<button
-											className="edit-handle absolute -top-5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition bg-neutral-900 text-white text-sm px-3 py-2 rounded-full shadow z-10"
-											onClick={(e) => { e.stopPropagation(); onSelectPanel(p.i); }}
-										>
-											Edit
-										</button>
-										{p.type === "text" && (
-											<div className="p-4">{p.content}</div>
-										)}
-										{p.type === "image" && (
-											<img src={p.content} alt="" className="w-full h-full object-cover rounded" />
-										)}
-                                        {p.type === "video" && (
-                                            <div className="w-full h-full flex items-center justify-center text-neutral-700 bg-neutral-100 rounded">
-                                                <div className="text-center">
-                                                    <div className="text-sm font-semibold">Video block</div>
-                                                    <div className="text-xs opacity-70">Preview disabled</div>
-                                                </div>
-                                            </div>
-                                        )}
-									</div>
-								</div>
-							))}
-						</ResponsiveGridLayout>
+					<div className="bg-neutral-200 rounded-xl mx-auto" style={{ 
+	    width: device === "mobile" ? 360 : 1024,
+	    height: device === "mobile" ? 360 * 2.22 : 700
+	  }}>
+                    <ResponsiveGridLayout
+  className="layout p-6"
+  layouts={{ lg: panels, md: panels, sm: panels, xs: panels, xxs: panels }}
+  breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+  cols={{ lg: device === "mobile" ? 6 : 12, md: device === "mobile" ? 6 : 10, sm: device === "mobile" ? 6 : 8, xs: 6, xxs: 4 }}
+  rowHeight={device === "mobile" ? 70 : 80}
+  draggableCancel=".edit-handle"
+  compactType={null}
+  // ✅ keep panel sizes/positions in sync with state
+  onLayoutChange={(layout) => {
+    setPanels(prev =>
+      prev.map(p => {
+        const l = layout.find(item => item.i === p.i);
+        return l ? { ...p, x: l.x, y: l.y, w: l.w, h: l.h } : p;
+      })
+    );
+  }}
+>
+  {panels.map(p => (
+    <div key={p.i}>
+      <div
+        className={`w-full h-full rounded relative group ${
+          selectedId === p.i ? "ring-4 ring-pink-400" : ""
+        }`}
+        style={{
+          backgroundColor: p.backgroundColor,
+          color: p.textColor,
+          fontFamily: p.fontFamily
+        }}
+      >
+        {/* Hover edit handle */}
+        <button
+          className="edit-handle absolute -top-5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition bg-neutral-900 text-white text-sm px-3 py-2 rounded-full shadow z-10"
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelectPanel(p.i);
+          }}
+        >
+          Edit
+        </button>
+
+        {p.type === "text" && <div className="p-4">{p.content}</div>}
+
+        {p.type === "image" && (
+          <img
+            src={p.content}
+            alt=""
+            className="w-full h-full object-cover rounded"
+          />
+        )}
+
+        {p.type === "video" && (
+          <div className="w-full h-full flex items-center justify-center text-neutral-700 bg-neutral-100 rounded">
+            <div className="text-center">
+              <div className="text-sm font-semibold">Video block</div>
+              <div className="text-xs opacity-70">Preview disabled</div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  ))}
+</ResponsiveGridLayout>
+
 					</div>
 				</div>
 			</div>
