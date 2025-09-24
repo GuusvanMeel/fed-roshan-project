@@ -4,8 +4,10 @@ import "react-resizable/css/styles.css";
 import { useMemo, useState } from "react";
 import BackgroundModal, { BackgroundConfig as BgConfig, computeGradientString } from "./BackgroundModal";
 import { Responsive, WidthProvider } from "react-grid-layout";
+import React from "react";
 
-type PanelType = "text" | "video" | "image";
+
+type PanelType = "text" | "video" | "image" | "carousel";
 
 type PanelData = {
 	i: string;
@@ -14,12 +16,13 @@ type PanelData = {
 	w: number;
 	h: number;
 	type: PanelType;
-	content: string;
+	content: string | string[];
 	isDraggable: boolean;
 	backgroundColor: string;
 	textColor: string;
 	fontFamily: string;
     isPlaying?: boolean;
+	currentIndex: number;
 };
 
 type BackgroundConfig = BgConfig;
@@ -93,12 +96,16 @@ export default function BuilderPage() {
 					? "New text"
 					: type === "video"
 					? "https://www.youtube.com/embed/dQw4w9WgXcQ"
+					: type === "carousel" ? ["/globe.svg", "/next.svg"] 
+
 					: "/globe.svg",
+				
 			isDraggable: true,
 			backgroundColor: "#ffffff",
 			textColor: "#000000",
 			fontFamily: "Inter, system-ui, sans-serif",
-            isPlaying: false
+            isPlaying: false,
+			currentIndex: 0
 		};
 		setPanels(prev => [...prev, newPanel]);
 		setIsPickerOpen(false);
@@ -237,11 +244,15 @@ export default function BuilderPage() {
 							{selectedPanel.type === "text" && (
 								<textarea className="w-full p-2 rounded text-black" value={selectedPanel.content} onChange={e => updatePanelContent(selectedPanel.i, e.target.value)} />
 							)}
-							{selectedPanel.type !== "text" && (
+							{selectedPanel.type === "image" && (
 								<input className="w-full p-2 rounded text-black" value={selectedPanel.content} onChange={e => updatePanelContent(selectedPanel.i, e.target.value)} />
 							)}
                             {selectedPanel.type === "video" && (
                                 <div className="mt-3 text-xs text-neutral-300">Video playback is disabled in editor preview.</div>
+                            )}
+							{selectedPanel.type === "carousel" && (
+								<input className="w-full p-2 rounded text-black" value={selectedPanel.content[1]}  />
+                               
                             )}
 							<button onClick={doneEditing} className="mt-3 w-full bg-green-500 text-black rounded px-3 py-2">Done</button>
 						</div>
@@ -299,7 +310,7 @@ export default function BuilderPage() {
 
         {p.type === "text" && <div className="p-4">{p.content}</div>}
 
-        {p.type === "image" && (
+        {p.type === "image" && !Array.isArray(p.content) && (
           <img
             src={p.content}
             alt=""
@@ -333,6 +344,7 @@ export default function BuilderPage() {
 							<button className="bg-neutral-200 rounded py-3" onClick={() => addPanel("text")}>Text</button>
 							<button className="bg-neutral-200 rounded py-3" onClick={() => addPanel("video")}>Video</button>
 							<button className="bg-neutral-200 rounded py-3" onClick={() => addPanel("image")}>Image</button>
+							<button className="bg-neutral-200 rounded py-3" onClick={() => addPanel("carousel")}>Image Carousel</button>
 						</div>
 						<button className="mt-4 w-full bg-neutral-800 text-white rounded py-2" onClick={() => setIsPickerOpen(false)}>Close</button>
 					</div>
