@@ -2,6 +2,7 @@
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
 import { useMemo, useState } from "react";
+import BackgroundModal, { BackgroundConfig as BgConfig, computeGradientString } from "./BackgroundModal";
 import { Responsive, WidthProvider } from "react-grid-layout";
 
 type PanelType = "text" | "video" | "image";
@@ -21,6 +22,8 @@ type PanelData = {
     isPlaying?: boolean;
 };
 
+type BackgroundConfig = BgConfig;
+
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
 const PAGE_KEYS = [
@@ -34,34 +37,50 @@ export default function BuilderPage() {
     const emptyPanels: PanelData[] = [];
     type Device = "desktop" | "mobile";
     const [device, setDevice] = useState<Device>("desktop");
-    const [pages, setPages] = useState<Record<string, { desktop: PanelData[]; mobile: PanelData[] }>>({
-        front: { desktop: emptyPanels, mobile: emptyPanels },
-        error: { desktop: emptyPanels, mobile: emptyPanels },
-        tournament: { desktop: emptyPanels, mobile: emptyPanels },
-        custom: { desktop: emptyPanels, mobile: emptyPanels }
+    const defaultBg: BackgroundConfig = { mode: "solid", color: "#e5e7eb", gradientType: "linear", direction: "to-bottom", colorStart: "#a1c4fd", colorEnd: "#c2e9fb" };
+	const [pages, setPages] = useState<Record<string, { desktop: { panels: PanelData[]; background: BackgroundConfig }; mobile: { panels: PanelData[]; background: BackgroundConfig } }>>({
+		front: { desktop: { panels: emptyPanels, background: defaultBg }, mobile: { panels: emptyPanels, background: defaultBg } },
+		error: { desktop: { panels: emptyPanels, background: defaultBg }, mobile: { panels: emptyPanels, background: defaultBg } },
+		tournament: { desktop: { panels: emptyPanels, background: defaultBg }, mobile: { panels: emptyPanels, background: defaultBg } },
+		custom: { desktop: { panels: emptyPanels, background: defaultBg }, mobile: { panels: emptyPanels, background: defaultBg } }
     });
     const [currentPage, setCurrentPage] = useState<string>(PAGE_KEYS[0].key);
     const [isPickerOpen, setIsPickerOpen] = useState(false);
+	const [isBgOpen, setIsBgOpen] = useState(false);
     const [selectedId, setSelectedId] = useState<string | null>(null);
 
-    const currentSet = pages[currentPage] ?? { desktop: emptyPanels, mobile: emptyPanels };
-    const panels = (device === "desktop" ? currentSet.desktop : currentSet.mobile) ?? [];
+	const currentSet = pages[currentPage] ?? { desktop: { panels: emptyPanels, background: defaultBg }, mobile: { panels: emptyPanels, background: defaultBg } };
+	const panels = (device === "desktop" ? currentSet.desktop.panels : currentSet.mobile.panels) ?? [];
+	const background = device === "desktop" ? currentSet.desktop.background : currentSet.mobile.background;
 
     const setPanels = (next: PanelData[] | ((p: PanelData[]) => PanelData[])) => {
-        setPages(prev => {
-            const page = prev[currentPage] ?? { desktop: emptyPanels, mobile: emptyPanels };
-            const nextPanels = typeof next === "function" ? (next as (p: PanelData[]) => PanelData[])(device === "desktop" ? page.desktop : page.mobile) : next;
+		setPages(prev => {
+			const page = prev[currentPage] ?? { desktop: { panels: emptyPanels, background: defaultBg }, mobile: { panels: emptyPanels, background: defaultBg } };
+			const nextPanels = typeof next === "function" ? (next as (p: PanelData[]) => PanelData[])(device === "desktop" ? page.desktop.panels : page.mobile.panels) : next;
             return {
                 ...prev,
                 [currentPage]: {
-                    desktop: device === "desktop" ? nextPanels : page.desktop,
-                    mobile: device === "mobile" ? nextPanels : page.mobile
+					desktop: device === "desktop" ? { panels: nextPanels, background: page.desktop.background } : page.desktop,
+					mobile: device === "mobile" ? { panels: nextPanels, background: page.mobile.background } : page.mobile
                 }
             };
         });
     };
 
-    const addPanel = (type: PanelType) => {
+    const setBackground = (next: BackgroundConfig) => {
+		setPages(prev => {
+			const page = prev[currentPage] ?? { desktop: { panels: emptyPanels, background: defaultBg }, mobile: { panels: emptyPanels, background: defaultBg } };
+			return {
+				...prev,
+				[currentPage]: {
+					desktop: device === "desktop" ? { panels: page.desktop.panels, background: next } : page.desktop,
+					mobile: device === "mobile" ? { panels: page.mobile.panels, background: next } : page.mobile
+				}
+			};
+		});
+	};
+
+	const addPanel = (type: PanelType) => {
 		const newPanel: PanelData = {
 			i: Date.now().toString(),
 			x: 0,
@@ -88,16 +107,16 @@ export default function BuilderPage() {
     // When switching device, if target layout is empty but the other device has content,
     // auto-clone positions in a stacked layout so users don't lose work.
     const ensureDeviceLayout = (nextDevice: Device) => {
-        const page = pages[currentPage] ?? { desktop: emptyPanels, mobile: emptyPanels };
-        const from = nextDevice === "desktop" ? page.mobile : page.desktop;
-        const to = nextDevice === "desktop" ? page.desktop : page.mobile;
-        if (to.length === 0 && from.length > 0) {
-            const cloned = from.map((p, idx) => ({ ...p, y: idx * (p.h + 1), x: 0 }));
+		const page = pages[currentPage] ?? { desktop: { panels: emptyPanels, background: defaultBg }, mobile: { panels: emptyPanels, background: defaultBg } };
+		const from = nextDevice === "desktop" ? page.mobile.panels : page.desktop.panels;
+		const to = nextDevice === "desktop" ? page.desktop.panels : page.mobile.panels;
+		if (to.length === 0 && from.length > 0) {
+			const cloned = from.map((p, idx) => ({ ...p, y: idx * (p.h + 1), x: 0 }));
             setPages(prev => ({
                 ...prev,
                 [currentPage]: {
-                    desktop: nextDevice === "desktop" ? cloned : page.desktop,
-                    mobile: nextDevice === "mobile" ? cloned : page.mobile
+					desktop: nextDevice === "desktop" ? { panels: cloned, background: page.desktop.background } : page.desktop,
+					mobile: nextDevice === "mobile" ? { panels: cloned, background: page.mobile.background } : page.mobile
                 }
             }));
         }
@@ -149,6 +168,7 @@ export default function BuilderPage() {
 						<div className="w-12 h-6 bg-neutral-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:h-5 after:w-5 after:rounded-full after:transition-all"></div>
 					</label>
 					<span className={`text-sm ${device === "desktop" ? "opacity-60" : ""}`}>Mobile</span>
+					<button onClick={() => setIsBgOpen(true)} className="ml-6 bg-neutral-600 px-3 py-2 rounded">Edit Background</button>
 				</div>
   {/* Row of page keys */}
   <div className="flex gap-6">
@@ -230,9 +250,11 @@ export default function BuilderPage() {
 
 				{/* Canvas / Live preview */}
 				<div className="flex-1 bg-neutral-300 rounded-xl p-8">
-					<div className="bg-neutral-200 rounded-xl mx-auto" style={{ 
+    <div className="rounded-xl mx-auto" style={{ 
 	    width: device === "mobile" ? 360 : 1024,
-	    height: device === "mobile" ? 360 * 2.22 : 700
+	    height: device === "mobile" ? 360 * 2.22 : 700,
+    background: background.mode === "solid" ? background.color : undefined,
+    backgroundImage: background.mode === "gradient" ? computeGradientString(background) : undefined
 	  }}>
                     <ResponsiveGridLayout
   className="layout p-6"
@@ -316,6 +338,17 @@ export default function BuilderPage() {
 					</div>
 				</div>
 			)}
+
+		{/* Background modal */}
+{isBgOpen && (
+    <BackgroundModal
+        isOpen={isBgOpen}
+        device={device}
+        background={background}
+        onChange={setBackground}
+        onClose={() => setIsBgOpen(false)}
+    />
+)}
 		</div>
 	);
 }
