@@ -18,6 +18,7 @@ type PanelData = {
 	backgroundColor: string;
 	textColor: string;
 	fontFamily: string;
+    isPlaying?: boolean;
 };
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
@@ -64,7 +65,8 @@ export default function BuilderPage() {
 			isDraggable: true,
 			backgroundColor: "#ffffff",
 			textColor: "#000000",
-			fontFamily: "Inter, system-ui, sans-serif"
+			fontFamily: "Inter, system-ui, sans-serif",
+            isPlaying: false
 		};
 		setPanels(prev => [...prev, newPanel]);
 		setIsPickerOpen(false);
@@ -84,15 +86,22 @@ export default function BuilderPage() {
 	};
 
 	const onSelectPanel = (id: string) => {
+		// stop any previous selection playback
+		if (selectedId) {
+			setPanels(prev => prev.map(p => (p.i === selectedId && p.type === "video" ? { ...p, isPlaying: false } : p)));
+		}
 		setSelectedId(id);
-		setPanels(prev => prev.map(p => (p.i === id ? { ...p, isDraggable: false } : p)));
 	};
 
 	const doneEditing = () => {
 		if (!selectedId) return;
-		const id = selectedId;
-		setPanels(prev => prev.map(p => (p.i === id ? { ...p, isDraggable: true } : p)));
+		// stop playback on exit
+		setPanels(prev => prev.map(p => (p.i === selectedId && p.type === "video" ? { ...p, isPlaying: false } : p)));
 		setSelectedId(null);
+	};
+
+	const setVideoPlaying = (id: string, playing: boolean) => {
+		setPanels(prev => prev.map(p => (p.i === id ? { ...p, isPlaying: playing } : p)));
 	};
 
 	const selectedPanel = useMemo(() => panels.find(p => p.i === selectedId) ?? null, [panels, selectedId]);
@@ -157,6 +166,9 @@ export default function BuilderPage() {
 							{selectedPanel.type !== "text" && (
 								<input className="w-full p-2 rounded text-black" value={selectedPanel.content} onChange={e => updatePanelContent(selectedPanel.i, e.target.value)} />
 							)}
+                            {selectedPanel.type === "video" && (
+                                <div className="mt-3 text-xs text-neutral-300">Video playback is disabled in editor preview.</div>
+                            )}
 							<button onClick={doneEditing} className="mt-3 w-full bg-green-500 text-black rounded px-3 py-2">Done</button>
 						</div>
 					)}
@@ -171,22 +183,36 @@ export default function BuilderPage() {
 							breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
 							cols={{ lg: 12, md: 10, sm: 8, xs: 6, xxs: 4 }}
 							rowHeight={80}
+							draggableCancel=".edit-handle"
+							compactType={null}
 						>
 							{panels.map(p => (
-								<div key={p.i} onClick={() => onSelectPanel(p.i)}>
+								<div key={p.i}>
 									<div
-										className={`w-full h-full rounded ${selectedId === p.i ? "ring-4 ring-pink-400" : ""}`}
+										className={`w-full h-full rounded relative group ${selectedId === p.i ? "ring-4 ring-pink-400" : ""}`}
 										style={{ backgroundColor: p.backgroundColor, color: p.textColor, fontFamily: p.fontFamily }}
 									>
+										{/* Hover edit handle */}
+										<button
+											className="edit-handle absolute -top-5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition bg-neutral-900 text-white text-sm px-3 py-2 rounded-full shadow z-10"
+											onClick={(e) => { e.stopPropagation(); onSelectPanel(p.i); }}
+										>
+											Edit
+										</button>
 										{p.type === "text" && (
 											<div className="p-4">{p.content}</div>
 										)}
 										{p.type === "image" && (
 											<img src={p.content} alt="" className="w-full h-full object-cover rounded" />
 										)}
-										{p.type === "video" && (
-											<iframe src={p.content} width="100%" height="100%" className="rounded" />
-										)}
+                                        {p.type === "video" && (
+                                            <div className="w-full h-full flex items-center justify-center text-neutral-700 bg-neutral-100 rounded">
+                                                <div className="text-center">
+                                                    <div className="text-sm font-semibold">Video block</div>
+                                                    <div className="text-xs opacity-70">Preview disabled</div>
+                                                </div>
+                                            </div>
+                                        )}
 									</div>
 								</div>
 							))}
@@ -214,3 +240,4 @@ export default function BuilderPage() {
 }
 
 
+ 
