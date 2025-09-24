@@ -3,6 +3,8 @@ import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
 import { useMemo, useState } from "react";
 import { Responsive, WidthProvider } from "react-grid-layout";
+import React from "react";
+
 
 type PanelType = "text" | "video" | "image" | "carousel";
 
