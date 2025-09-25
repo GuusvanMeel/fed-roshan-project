@@ -7,7 +7,7 @@ export default function MyColorPicker({OnChange}:{OnChange: (val: string) => voi
   const [color, setColor] = useState("1e3a8a"); // hex without #
 
   return (
-    <div className="p-4 bg-white border rounded">
+    <div className="p-2 bg-white border rounded">
       <ColorPicker value={color}  onChange={(e) => {
           if (typeof e.value === "string") {
             setColor(e.value);
