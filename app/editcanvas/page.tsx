@@ -5,6 +5,7 @@ import { CanvasData } from '../component/Canvas'
 import { useState } from 'react';
 import Counter from '../component/Counter';
 import MyColorPicker from '../component/MyColorPicker';
+import { InputSwitch } from "primereact/inputswitch";
 
 
 export default function page() {
@@ -13,15 +14,17 @@ export default function page() {
         Width: 360,
         Height: 780,
         color: "#1e3a8a", // Tailwind bg-blue-900 hex
+        columns: 20,
+        rows: 10,
+        showgrid: true,
       });
   
     return (
         <div className="flex gap-6 items-start">
-  {/* Canvas on the left */}
-  <Canvas settings={myCanvas} />
+  
 
   {/* Controls on the right */}
-  <div className="flex flex-col gap-4">
+  <div className="flex flex-col gap-2">
     <Counter
       value={myCanvas.Height}
       label={"Height of canvas " + myCanvas.Height + "px"}
@@ -36,11 +39,36 @@ export default function page() {
         setMyCanvas({ ...myCanvas, Width: newWidth })
       }
     />
+    <Counter
+      value={myCanvas.rows}
+      label={"Amount of rows :" + myCanvas.rows}
+      OnChange={(newRow) =>
+        setMyCanvas({ ...myCanvas, rows: newRow })
+      }
+    />
+    <Counter
+      value={myCanvas.columns}
+      label={"Amount of columns :" + myCanvas.columns}
+      OnChange={(newColumns) =>
+        setMyCanvas({ ...myCanvas, columns: newColumns })
+      }
+    />
+<div className="flex items-center gap-2">
+  <InputSwitch
+    checked={myCanvas.showgrid}
+    onChange={(e) =>
+      setMyCanvas({ ...myCanvas, showgrid: e.value })
+    }
+  />
+  <span className="text-sm text-white">{myCanvas.showgrid ? "Grid ON" : "Grid OFF"}</span>
+</div>    
+  <MyColorPicker OnChange={(newColor) => setMyCanvas({...myCanvas, color: newColor})} />
+    
+
     
   </div>
-  <div className="flex flex-col gap-4 bg-gray-100 p-4 rounded">
-  <MyColorPicker OnChange={(newColor) => setMyCanvas({...myCanvas, color: newColor})} />
-</div>
+  
+<Canvas settings={myCanvas} />
 </div>
   )
 }
