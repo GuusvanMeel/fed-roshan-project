@@ -264,7 +264,7 @@ const ensureDeviceLayout = (nextDevice: Device) => {
 							{panels.map(p => (
 								<div key={p.i}>
 									<div
-										className={`w-full h-auto rounded relative group ${selectedId === p.i ? "ring-4 ring-pink-400" : ""}`}
+										className={`w-full h-full rounded relative group ${selectedId === p.i ? "ring-4 ring-pink-400" : ""}`}
 										style={{ backgroundColor: p.backgroundColor, color: p.textColor, fontFamily: p.fontFamily }}
 									>
 										{/* Hover edit handle */}
