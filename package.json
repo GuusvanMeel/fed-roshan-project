@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "next": "15.5.3",
+    "primeicons": "^7.0.0",
+    "primereact": "^10.9.7",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-grid-layout": "^1.5.2",
