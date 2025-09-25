@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Responsive, WidthProvider } from "react-grid-layout";
 import { Panel, PanelProps } from "./component/panel";
 import BackgroundModal, { BackgroundConfig as BgConfig, computeGradientString } from "./component/BackgroundModal";
+import { CldUploadWidget } from "next-cloudinary";
 
 type PanelType = "text" | "video" | "image" | "carousel";
 
@@ -68,6 +69,28 @@ export default function BuilderPage() {
             };
         });
     };
+
+
+const uploadImage = async (file: File): Promise<string | null> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", "YOUR_UNSIGNED_PRESET"); // Cloudinary preset
+
+    try {
+      const res = await fetch(
+        "https://api.cloudinary.com/v1_1/YOUR_CLOUD_NAME/image/upload",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+      const data = await res.json();
+      return data.secure_url; // uploaded image URL
+    } catch (err) {
+      console.error("Upload failed:", err);
+      return null;
+    }
+}
 
     const setBackground = (next: BackgroundConfig) => {
         setPages(prev => {
@@ -230,6 +253,8 @@ const ensureDeviceLayout = (nextDevice: Device) => {
 							disabled={!selectedPanel}
 						/>
 					</div>
+
+					
 					{selectedPanel && (
 						<div className="bg-neutral-700 rounded p-3">
 							<div className="text-sm mb-2">Content</div>
@@ -237,11 +262,33 @@ const ensureDeviceLayout = (nextDevice: Device) => {
 								<textarea className="w-full p-2 rounded text-black" value={selectedPanel.content} onChange={e => updatePanelContent(selectedPanel.i, e.target.value)} />
 							)}
 							{selectedPanel.type === "image" && (
-								<input className="w-full p-2 rounded text-black" value={selectedPanel.content} onChange={e => updatePanelContent(selectedPanel.i, e.target.value)} />
+								<>
+								<CldUploadWidget uploadPreset="RoshApp"   onSuccess={(result) => {
+
+									const info = result.info;
+									if (info != null && typeof info !== "string") {
+									const url = info.secure_url; // now TS knows this exists
+									console.log("Uploaded image URL:", url);
+									updatePanelContent(selectedPanel.i, url)
+
+									}
+
+  									}}>
+									{
+										({open}) => {
+											return <button className="w-full bg-neutral-800 p-2 rounded" onClick={() => open()} > Upload an Image</button>
+										}
+									}
+
+								</CldUploadWidget>
+								</>
+								
 							)}
                             {selectedPanel.type === "video" && (
                                 <div className="mt-3 text-xs text-neutral-300">Video playback is disabled in editor preview.</div>
                             )}
+
+							
                             {selectedPanel.type === "carousel" && Array.isArray(selectedPanel.content) && (
                                 <textarea
                                     className="w-full p-2 rounded text-black"
