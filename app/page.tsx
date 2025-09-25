@@ -145,16 +145,16 @@ export default function BuilderPage() {
     const selectedPanel = useMemo(() => panels.find(p => p.i === selectedId) ?? null, [panels, selectedId]);
 
 // Rotate carousel panels every 3s
-useEffect(() => {
-    const interval = setInterval(() => {
-        setPanels(prev => prev.map(p => {
-            if (p.type !== "carousel" || !Array.isArray(p.content) || p.content.length === 0) return p;
-            const nextIndex = (p.currentIndex + 1) % p.content.length;
-            return { ...p, currentIndex: nextIndex };
-        }));
-    }, 3000);
-    return () => clearInterval(interval);
-}, []);
+// useEffect(() => {
+//     const interval = setInterval(() => {
+//         setPanels(prev => prev.map(p => {
+//             if (p.type !== "carousel" || !Array.isArray(p.content) || p.content.length === 0) return p;
+//             const nextIndex = (p.currentIndex + 1) % p.content.length;
+//             return { ...p, currentIndex: nextIndex };
+//         }));
+//     }, 3000);
+//     return () => clearInterval(interval);
+// }, []);
 
 // Ensure device layout exists when switching
 const ensureDeviceLayout = (nextDevice: Device) => {
