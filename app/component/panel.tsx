@@ -48,18 +48,7 @@ export function Panel({ panel, onUpdate, onEditingChange, readonly }: { panel: P
       )}
       
 
-      {/* Edit button */}
-      {!readonly && onUpdate && (
-        <button
-          onClick={() => {
-            setIsOpen(true);
-            onEditingChange && onEditingChange(panel.id, true);
-          }}
-          className="mt-2 bg-blue-500 text-white px-2 py-1 rounded"
-        >
-          ✏️ Edit
-        </button>
-      )}
+     
 
       {/* Modal */}
       {isOpen && !readonly && (
